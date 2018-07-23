@@ -49,14 +49,15 @@ type Message struct {
 
 // SingleMessage is used to display a single message-view.
 type SingleMessage struct {
-	Folder      string
-	UID         string
-	Headers     map[string]string
-	HTML        string
-	Text        string
-	RAW         string
-	HasHTML     bool
-	Attachments []enmime.MIMEPart
+	Folder         string
+	UID            string
+	Headers        map[string]string
+	HTML           string
+	Text           string
+	RAW            string
+	HasHTML        bool
+	Attachments    []enmime.MIMEPart
+	HasAttachments bool
 }
 
 func prepend(arr []Message, item Message) []Message {
@@ -381,6 +382,7 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	// Finally copy the attachments.
 	//
 	tmp.Attachments = mime.Attachments
+	tmp.HasAttachments = len(mime.Attachments) > 0
 
 	//
 	// Parent-details
@@ -388,8 +390,5 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	tmp.Folder = folder
 	tmp.UID = uid
 
-	for _, e := range mime.Attachments {
-		fmt.Printf("Attachment %s - %s\n", e.FileName, e.ContentType)
-	}
 	return tmp, nil
 }
