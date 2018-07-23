@@ -90,11 +90,15 @@
     <li class="{{ if .Message.HasHTML }}{{else}}active{{end}}">
       <a href="#body-text" aria-controls="body-text" role="tab" data-toggle="tab">Text</a>
     </li>
+    <li>
+      <a href="#body-raw" aria-controls="body-text" role="tab" data-toggle="tab">Raw</a>
+    </li>
   </ul>
 </nav>
 <div class="tab-content">
   <div role="tabpanel" class="tab-pane face in {{ if .Message.HasHTML }}active{{ end }}" id="body-html">{{ .Message.HTML }}</div>
   <div role="tabpanel" class="tab-pane fade in {{ if .Message.HasHTML }} {{ else }} active{{ end }}" id="body-text"><pre>{{ .Message.Text}}</pre></div>
+  <div role="tabpanel" class="tab-pane fade in" id="body-raw"><pre>{{ .Message.RAW}}</pre></div>
 </div>
 
         {{end}}

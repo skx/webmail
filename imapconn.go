@@ -52,6 +52,7 @@ type SingleMessage struct {
 	Headers map[string]string
 	HTML    string
 	Text    string
+	RAW     string
 	HasHTML bool
 }
 
@@ -300,8 +301,8 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	//
 	// Parse the body
 	//
-
-	r := strings.NewReader(fmt.Sprintf("%s", msg.GetBody(section)))
+	raw := fmt.Sprintf("%s", msg.GetBody(section))
+	r := strings.NewReader(raw)
 	m, err := mail.ReadMessage(r)
 	if err != nil {
 		return tmp, err
@@ -349,6 +350,7 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	// Now save the body
 	//
 	tmp.Text = mime.Text
+	tmp.RAW = raw
 	tmp.HTML = string(bluemonday.UGCPolicy().SanitizeBytes([]byte(mime.HTML)))
 	if tmp.HTML != "" {
 		tmp.HasHTML = true
