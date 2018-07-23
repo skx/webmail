@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Message ..</title>
+    <title>Message {{.Message.Folder }} [{{ .Message.UID }}]</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <!-- Latest compiled and minified CSS -->
@@ -58,8 +58,6 @@
           <span class="input-group-addon"><i class="glyphicon glyphicon-search"></i></span>
           <input type="text" id="filter" name="filter" value="" placeholder="filter" style="width:100%">
         </div>
-
-
         <div class="list-group" id="folders">
           {{range .Folders }}
           <a class="list-group-item btn btn-default folder" style="text-align:left" href="/folder/{{.}}" role="button">{{.}}</a>
@@ -70,37 +68,57 @@
         {{if .Error}}
         <p>{{.Error}}</p>
         {{else}}
-
         <!-- Headers -->
         <table class="table table-striped table-hover table-bordered table-condensed">
         {{range $key, $value := .Message.Headers }}
           <tr><td>{{ $key }}</td><td> {{ $value }}</td></tr>
           {{end}}
         </table>
+        <!-- Ttachments -->
+    <div class="well message-attachments">
+      {{range $i, $e := .Message.Attachments}}
+      <div class="row">
+        <div class="col-sm-6">
+          <span class="glyphicon glyphicon-paperclip" aria-hidden="true"></span>
+          {{$e.FileName}}
+          ({{$e.ContentType}})
+        </div>
+        <div class="col-sm-6">
+          <a class="btn btn-primary btn-xs"
+             role="button"
+             target="_blank"
+             href="/attach/{{$.Message.Folder}}/{{$.Message.UID}}/{{$e.FileName}}"
+             aria-label="Download">
+            <span class="glyphicon glyphicon-download" aria-hidden="true"></span>
+            Download
+          </a>
+        </div>
+      </div>
+      {{end}}
+    </div>
+
 
         <!-- Body -->
-
-<nav>
-  <ul class="nav nav-tabs">
-    {{ if .Message.HasHTML }}
-    <li class="{{ if .Message.HasHTML }}active{{end}}">
-      <a href="#body-html" aria-controls="body-html" role="tab" data-toggle="tab">HTML</a>
-    </li>
-    {{ end }}
-    <li class="{{ if .Message.HasHTML }}{{else}}active{{end}}">
-      <a href="#body-text" aria-controls="body-text" role="tab" data-toggle="tab">Text</a>
-    </li>
-    <li>
-      <a href="#body-raw" aria-controls="body-text" role="tab" data-toggle="tab">Raw</a>
-    </li>
-  </ul>
-</nav>
-<div class="tab-content">
-  <div role="tabpanel" class="tab-pane face in {{ if .Message.HasHTML }}active{{ end }}" id="body-html">{{ .Message.HTML }}</div>
-  <div role="tabpanel" class="tab-pane fade in {{ if .Message.HasHTML }} {{ else }} active{{ end }}" id="body-text"><pre>{{ .Message.Text}}</pre></div>
-  <div role="tabpanel" class="tab-pane fade in" id="body-raw"><pre>{{ .Message.RAW}}</pre></div>
-</div>
-
+        <nav>
+          <ul class="nav nav-tabs">
+            {{ if .Message.HasHTML }}
+            <li class="{{ if .Message.HasHTML }}active{{end}}">
+              <a href="#body-html" aria-controls="body-html" role="tab" data-toggle="tab">HTML</a>
+            </li>
+            {{ end }}
+            <li class="{{ if .Message.HasHTML }}{{else}}active{{end}}">
+              <a href="#body-text" aria-controls="body-text" role="tab" data-toggle="tab">Text</a>
+            </li>
+            <li>
+              <a href="#body-raw" aria-controls="body-text" role="tab" data-toggle="tab">Raw</a>
+            </li>
+          </ul>
+        </nav>
+        <div class="tab-content">
+          <div role="tabpanel" class="tab-pane face in {{ if .Message.HasHTML }}active{{ end }}" id="body-html">{{ .Message.HTML }}</div>
+          <div role="tabpanel" class="tab-pane fade in {{ if .Message.HasHTML }} {{ else }} active{{ end }}" id="body-text"><pre>{{ html .Message.Text}}</pre></div>
+          <div role="tabpanel" class="tab-pane fade in" id="body-raw"><pre>{{ html .Message.RAW }}</pre></div>
+        </div>
         {{end}}
       </div>
     </div>

@@ -49,11 +49,14 @@ type Message struct {
 
 // SingleMessage is used to display a single message-view.
 type SingleMessage struct {
-	Headers map[string]string
-	HTML    string
-	Text    string
-	RAW     string
-	HasHTML bool
+	Folder      string
+	UID         string
+	Headers     map[string]string
+	HTML        string
+	Text        string
+	RAW         string
+	HasHTML     bool
+	Attachments []enmime.MIMEPart
 }
 
 func prepend(arr []Message, item Message) []Message {
@@ -299,7 +302,8 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	}
 
 	//
-	// Parse the body
+	// Get the body of the message as a string, and pass it to the
+	// golang net/mail object.
 	//
 	raw := fmt.Sprintf("%s", msg.GetBody(section))
 	r := strings.NewReader(raw)
@@ -308,6 +312,9 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 		return tmp, err
 	}
 
+	//
+	// Now pass the net/mail object to the enmime-library.
+	//
 	var mime *enmime.MIMEBody
 	mime, err = enmime.ParseMIMEBody(m)
 	if err != nil {
@@ -315,10 +322,13 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	}
 
 	//
-	// Now create the object
+	// Ensure that our return-value has a populated map.
 	//
 	tmp.Headers = make(map[string]string)
 
+	//
+	// Copy "some" headers into that map.
+	//
 	for k := range m.Header {
 		switch strings.ToLower(k) {
 		case "date", "subject":
@@ -326,6 +336,10 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 		}
 	}
 
+	//
+	// Now handle the address-lists in the to/cc/from
+	// headers.
+	//
 	for _, hkey := range enmime.AddressHeaders {
 		addrlist, err := mime.AddressList(hkey)
 		if err != nil {
@@ -347,13 +361,35 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	}
 
 	//
-	// Now save the body
+	// Save three copies of the body (!) in the object.
 	//
 	tmp.Text = mime.Text
 	tmp.RAW = raw
 	tmp.HTML = string(bluemonday.UGCPolicy().SanitizeBytes([]byte(mime.HTML)))
+	//
+	// If we had a non-empty HTML-section then mark that as being
+	// the case.
+	//
+	// (Because the message-display template won't show the HTML-tab
+	// if such a part isn't available.)
+	//
 	if tmp.HTML != "" {
 		tmp.HasHTML = true
+	}
+
+	//
+	// Finally copy the attachments.
+	//
+	tmp.Attachments = mime.Attachments
+
+	//
+	// Parent-details
+	//
+	tmp.Folder = folder
+	tmp.UID = uid
+
+	for _, e := range mime.Attachments {
+		fmt.Printf("Attachment %s - %s\n", e.FileName, e.ContentType)
 	}
 	return tmp, nil
 }

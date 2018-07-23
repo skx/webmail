@@ -262,15 +262,16 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 	res, err := imap.Connect()
 	if (res == true) && (err == nil) {
 		x.Folders, err = imap.Folders()
+		imap.Close()
 		if err != nil {
 			x.Error = err.Error()
 		}
-		imap.Close()
 	} else {
 		//
 		// Otherwise we will show an error
 		//
 		x.Error = err.Error()
+		imap.Close()
 	}
 
 	//
@@ -372,6 +373,7 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 		// Otherwise we will show an error
 		//
 		x.Error = err.Error()
+		imap.Close()
 	}
 
 	//
@@ -467,6 +469,7 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 		// Otherwise we will show an error
 		//
 		x.Error = err.Error()
+		imap.Close()
 	}
 
 	x.Folder = folder
@@ -503,6 +506,77 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 	// Otherwise write the result.
 	//
 	buf.WriteTo(response)
+}
+
+// Download an attachment
+func attachmentHandler(response http.ResponseWriter, request *http.Request) {
+	user := request.Context().Value("user")
+	pass := request.Context().Value("pass")
+	host := request.Context().Value("host")
+
+	if user == nil || host == nil || pass == nil {
+		http.Redirect(response, request, "/login", 302)
+	}
+
+	//
+	// Get the name of the folder, and the number of the message
+	// we're supposed to display
+	//
+	vars := mux.Vars(request)
+	uid := vars["number"]
+	folder := vars["folder"]
+	filename := vars["filename"]
+
+	//
+	// Create an IMAP object.
+	//
+	imap := NewIMAP(host.(string), user.(string), pass.(string))
+
+	//
+	// The message we'll parse.
+	//
+	var msg SingleMessage
+
+	//
+	// If we logged in then we can get the folders/messages
+	//
+	res, err := imap.Connect()
+	if (res == true) && (err == nil) {
+		msg, err = imap.GetMessage(uid, folder)
+		imap.Close()
+		if err != nil {
+			fmt.Fprintf(response, "Error getting message - %s\n", err.Error())
+			return
+		}
+	} else {
+		//
+		// Otherwise we will show an error
+		//
+		fmt.Fprintf(response, "Error getting message - %s\n", err.Error())
+		imap.Close()
+		return
+	}
+
+	//
+	// Now loop over the attachments
+	//
+	for _, e := range msg.Attachments {
+		if e.FileName() == filename {
+
+			//
+			// Set the content-type
+			//
+			response.Header().Set("Content-Type", e.ContentType())
+			response.Write(e.Content())
+
+			return
+		}
+	}
+
+	//
+	// Failed to find attachment
+	//
+	fmt.Fprintf(response, "Failed to find attachment")
 }
 
 //
@@ -559,6 +633,12 @@ func main() {
 	//
 	router.HandleFunc("/message/{number}/{folder}", messageHandler).Methods("GET")
 	router.HandleFunc("/message/{number}/{folder}/", messageHandler).Methods("GET")
+
+	//
+	// Attachment download
+	//
+	router.HandleFunc("/attach/{folder}/{number}/{filename}", attachmentHandler).Methods("GET")
+	router.HandleFunc("/attach/{folder}/{number}/{filename}/", attachmentHandler).Methods("GET")
 
 	http.Handle("/", router)
 
