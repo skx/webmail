@@ -54,9 +54,15 @@
     </nav>
     <div class="row">
       <div class="col-sm-3 col-md-3">
-        <div class="list-group">
+        <div class="input-group">
+          <span class="input-group-addon"><i class="glyphicon glyphicon-search"></i></span>
+          <input type="text" id="filter" name="filter" value="" placeholder="filter" style="width:100%">
+        </div>
+
+
+        <div class="list-group" id="folders">
           {{range .Folders }}
-          <a class="list-group-item btn btn-default" style="text-align:left" href="/folder/{{.}}" role="button">{{.}}</a>
+          <a class="list-group-item btn btn-default folder" style="text-align:left" href="/folder/{{.}}" role="button">{{.}}</a>
           {{end}}
         </div>
       </div>
@@ -115,6 +121,20 @@
 
 
      });
+    </script>
+    <script type="text/javascript">
+     var input = document.getElementById('filter');
+     input.onkeyup = function () {
+       var filter = input.value.toUpperCase();
+       var lis = document.getElementsByClassName('folder');
+       for (var i = 0; i < lis.length; i++) {
+         var name = lis[i].innerHTML;
+         if (name.toUpperCase().indexOf(filter) >= 0)
+           lis[i].style.display = 'list-item';
+         else
+           lis[i].style.display = 'none';
+       }
+     }
     </script>
   </body>
 </html>
