@@ -266,6 +266,9 @@ func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
 				if e.Disposition == "attachment" {
 					attach = true
 				}
+				if e.Disposition == "inline" {
+					attach = true
+				}
 			}
 		}
 
@@ -401,10 +404,21 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	}
 
 	//
-	// Finally copy the attachments.
+	// Copy the attachments.
 	//
 	tmp.Attachments = mime.Attachments
-	tmp.HasAttachments = len(mime.Attachments) > 0
+
+	//
+	// And copy any inline attachments too.
+	//
+	for _, i := range mime.Inlines {
+		tmp.Attachments = append(tmp.Attachments, i)
+	}
+
+	//
+	// Did we find any inline/attached media?
+	//
+	tmp.HasAttachments = len(tmp.Attachments) > 0
 
 	//
 	// Parent-details
