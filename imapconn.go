@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	imap "github.com/emersion/go-imap"
@@ -173,12 +174,13 @@ func (s *IMAPConnection) Folders() ([]string, error) {
 		return res, err
 	}
 
+	//
 	// Sort the list of mailboxes.
 	//
-	// TODO: Case-insensitive:
-	// https://blog.thecodeteam.com/2017/10/24/go-highly-performant-case-insensitive-string-sort/
-	//
-	sort.Strings(res)
+
+	sort.Slice(res, func(i, j int) bool {
+		return strings.ToLower(res[i]) < strings.ToLower(res[j])
+	})
 
 	return res, nil
 }
