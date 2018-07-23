@@ -8,6 +8,8 @@ This repository contains a simple webmail implementation for golang:
      * Unread messages will be displayed in bold.
   * For any message in the folder list you can retrieve it
      * Which will also mark the message as being read.
+     * The message will be displayed as (filtered) HTML if available.
+     * Otherwise plaintext will be shown.
 
 This application has been tested against three remote IMAP hosts:
 
@@ -54,8 +56,8 @@ Now point your favourite browser at http://localhost:8080/ and fill in the appro
 
 ## Limitations
 
-This is a naive webmail client, which means that every time you carry
-out an option the flow goes:
+The main limitation is that this is a naive webmail client, which means that
+every time you carry out an option the flow goes:
 
 * Your browser sends a request to this server.
 * The server opens a __new__ connection to the remote IMAP server:
@@ -76,8 +78,9 @@ You cannot:
 * Forward a message.
 * Page backwards/forwards in message-lists.
 * Compose a fresh message.
+* View message attachments.
 
-Some of those would be trivial to add.
+Some of those would be simple to add, others more complex.
 
 
 ## Hacking
