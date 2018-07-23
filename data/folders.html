@@ -63,7 +63,11 @@
       <div class="col-sm-9 col-md-9">
         <h2>Overview</h2>
 
+        {{if .Error}}
+        <p>{{.Error}}</p>
+        {{else}}
         <p>Please select a folder to view messages.</p>
+        {{end}}
       </div>
     </div>
     <p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>

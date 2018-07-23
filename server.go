@@ -7,22 +7,13 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
-	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
-	"net"
 	"net/http"
 	"os"
-	"sort"
-	"strconv"
-	"strings"
 	"time"
 
-	imap "github.com/emersion/go-imap"
-	"github.com/emersion/go-imap/client"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
@@ -142,28 +133,6 @@ func AddContext(next http.Handler) http.Handler {
 	})
 }
 
-// RemoteIP handles retrieving the remote IP which made a particular
-// HTTP-request, handling reverse-proxies as well as direct connections.
-func RemoteIP(request *http.Request) string {
-
-	//
-	// Get the X-Forwarded-For header, if present.
-	//
-	xForwardedFor := request.Header.Get("X-Forwarded-For")
-
-	//
-	// No forwarded IP?  Then use the remote address directly.
-	//
-	if xForwardedFor == "" {
-		ip, _, _ := net.SplitHostPort(request.RemoteAddr)
-		return ip
-	}
-
-	entries := strings.Split(xForwardedFor, ",")
-	address := strings.TrimSpace(entries[0])
-	return (address)
-}
-
 //
 // Serve a static-resource
 //
@@ -177,290 +146,28 @@ func serveResource(response http.ResponseWriter, request *http.Request, resource
 	fmt.Fprintf(response, string(tmpl))
 }
 
+//
+// loginForm shows the login-form to the user,
+//
 func loginForm(response http.ResponseWriter, request *http.Request) {
 	serveResource(response, request, "data/login.html", "text/html; charset=utf-8")
 }
 
-// validate tests a login
+//
+// validate tests a login is correct.
+//
 func validate(host string, username string, password string) bool {
-	var err error
 
-	//
-	// Default to connecting to an IPv4-address
-	//
-	address := fmt.Sprintf("%s:%d", host, 993)
-
-	//
-	// Setup a dialer so we can have a suitable timeout
-	//
-	var dial = &net.Dialer{
-		Timeout: 5 * time.Second,
-	}
-
-	//
-	// Setup the default TLS config.
-	tlsSetup := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	//
-	// Connect.
-	//
-	con, err := client.DialWithDialerTLS(dial, address, tlsSetup)
-	if err != nil {
-		return false
-
-	}
-	defer con.Close()
-
-	err = con.Login(username, password)
-	if err != nil {
-		fmt.Printf("ERROR: (%s,%s), %s\n", username, password, err.Error())
-		con.Logout()
+	x := NewIMAP(host, username, password)
+	res, err := x.Connect()
+	if !res {
 		return false
 	}
-
-	// Logout so that we don't keep the handle open.
-	err = con.Logout()
+	if err != nil {
+		return false
+	}
+	x.Close()
 	return true
-}
-
-// Folders returns all the folders a remote host contains
-func Folders(host string, username string, password string) ([]string, error) {
-	var err error
-	var res []string
-
-	//
-	// Default to connecting to an IPv4-address
-	//
-	address := fmt.Sprintf("%s:%d", host, 993)
-
-	//
-	// Setup a dialer so we can have a suitable timeout
-	//
-	var dial = &net.Dialer{
-		Timeout: 5 * time.Second,
-	}
-
-	//
-	// Setup the default TLS config.
-	tlsSetup := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	//
-	// Connect.
-	//
-	con, err := client.DialWithDialerTLS(dial, address, tlsSetup)
-	if err != nil {
-		return res, err
-
-	}
-	defer con.Close()
-
-	err = con.Login(username, password)
-	if err != nil {
-		return res, err
-	}
-
-	// List mailboxes
-	mailboxes := make(chan *imap.MailboxInfo, 15)
-	done := make(chan error, 1)
-	go func() {
-		done <- con.List("", "*", mailboxes)
-	}()
-
-	// For each result save the name
-	for m := range mailboxes {
-		res = append(res, m.Name)
-	}
-
-	// Wait for completion
-	if err := <-done; err != nil {
-		log.Fatal(err)
-	}
-
-	con.Logout()
-	sort.Strings(res)
-	return res, nil
-}
-
-//
-// This is a very minimal structure for a message in a folder
-//
-type Message struct {
-	New     bool
-	ID      string
-	To      string
-	From    string
-	Date    string
-	Subject string
-}
-
-// Messages returns the most recent messages in the given folder.
-func Messages(folder string, host string, username string, password string) ([]Message, error) {
-	var err error
-	var res []Message
-	//
-	// Default to connecting to an IPv4-address
-	//
-	address := fmt.Sprintf("%s:%d", host, 993)
-
-	//
-	// Setup a dialer so we can have a suitable timeout
-	//
-	var dial = &net.Dialer{
-		Timeout: 5 * time.Second,
-	}
-
-	//
-	// Setup the default TLS config.
-	tlsSetup := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	//
-	// Connect.
-	//
-	con, err := client.DialWithDialerTLS(dial, address, tlsSetup)
-	if err != nil {
-		return res, err
-
-	}
-	defer con.Close()
-
-	err = con.Login(username, password)
-	if err != nil {
-		return res, err
-	}
-
-	// Select INBOX
-	mbox, err := con.Select(folder, false)
-	if err != nil {
-		return res, err
-	}
-
-	// Get the last 50 messages
-	from := uint32(1)
-	to := mbox.Messages
-	if mbox.Messages > 50 {
-		// We're using unsigned integers here, only substract if the result is > 0
-		from = mbox.Messages - 50
-	}
-	seqset := new(imap.SeqSet)
-	seqset.AddRange(from, to)
-
-	messages := make(chan *imap.Message, 10)
-	done := make(chan error, 1)
-	go func() {
-		done <- con.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope, imap.FetchFlags}, messages)
-	}()
-
-	for msg := range messages {
-
-		fr := msg.Envelope.From[0].MailboxName + "@" + msg.Envelope.From[0].HostName
-		to := msg.Envelope.To[0].MailboxName + "@" + msg.Envelope.To[0].HostName
-
-		var new bool
-		new = true
-		for _, x := range msg.Flags {
-			if x == "\\Seen" {
-				new = false
-			}
-		}
-		x := Message{Subject: msg.Envelope.Subject,
-			Date: msg.Envelope.Date.String(),
-			From: fr,
-			ID:   fmt.Sprintf("%d", msg.SeqNum),
-			To:   to,
-			New:  new,
-		}
-		res = append(res, x)
-	}
-
-	if err := <-done; err != nil {
-		log.Fatal(err)
-	}
-
-	con.Logout()
-	return res, nil
-}
-
-// GetMessage returns the contents of a single message.
-func GetMessage(uid string, folder string, host string, username string, password string) (string, error) {
-	var err error
-
-	//
-	// Default to connecting to an IPv4-address
-	//
-	address := fmt.Sprintf("%s:%d", host, 993)
-
-	//
-	// Setup a dialer so we can have a suitable timeout
-	//
-	var dial = &net.Dialer{
-		Timeout: 5 * time.Second,
-	}
-
-	//
-	// Setup the default TLS config.
-	tlsSetup := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	//
-	// Connect.
-	//
-	con, err := client.DialWithDialerTLS(dial, address, tlsSetup)
-	if err != nil {
-		return "", err
-
-	}
-	defer con.Close()
-
-	err = con.Login(username, password)
-	if err != nil {
-		return "", err
-	}
-
-	// Select the folder
-	_, err = con.Select(folder, false)
-	if err != nil {
-		return "", err
-	}
-
-	//
-	// Get the stuff
-	//
-	seqSet := new(imap.SeqSet)
-	x, _ := strconv.Atoi(uid)
-	seqSet.AddNum(uint32(x))
-
-	// Get the whole message body
-	section := &imap.BodySectionName{}
-	items := []imap.FetchItem{section.FetchItem()}
-
-	messages := make(chan *imap.Message, 1)
-	go func() {
-		if err := con.Fetch(seqSet, items, messages); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	msg := <-messages
-	if msg == nil {
-		log.Fatal("Server didn't returned message")
-		return "", errors.New("Server didn't returned message")
-	}
-
-	// Logout
-	con.Logout()
-
-	//
-	// Hack - we just return the complete message
-	//
-	txt := fmt.Sprintf("%s\n", msg.GetBody(section))
-	return txt, nil
 }
 
 //
@@ -479,6 +186,9 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	if validate(host, user, pass) {
 
+		//
+		// Store everything in the cookie
+		//
 		value := map[string]string{
 			"host": host,
 			"user": user,
@@ -503,12 +213,14 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 	http.Redirect(response, request, "/login#failed", 302)
 }
 
+// indexPageHandler responds to the server-root requests.  If the user
+// is logged in it will redirect them to the folder-overview, otherwise
+// the login-form.
 func indexPageHandler(response http.ResponseWriter, request *http.Request) {
 	user := request.Context().Value("user")
 	if user == nil {
 		http.Redirect(response, request, "/login", 302)
 	}
-
 	http.Redirect(response, request, "/folders", 302)
 
 }
@@ -525,12 +237,41 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 		http.Redirect(response, request, "/login", 302)
 	}
 
+	//
+	// This is the page-data we'll return
+	//
 	type PageData struct {
+		Error   string
 		Folders []string
 	}
 
+	//
+	// Create an instance of the object so we can populate
+	// our template.
+	//
 	var x PageData
-	x.Folders, _ = Folders(host.(string), user.(string), pass.(string))
+
+	//
+	// Create an IMAP object.
+	//
+	imap := NewIMAP(host.(string), user.(string), pass.(string))
+
+	//
+	// If we logged in then we can get the folders/messages
+	//
+	res, err := imap.Connect()
+	if (res == true) && (err == nil) {
+		x.Folders, err = imap.Folders()
+		if err != nil {
+			x.Error = err.Error()
+		}
+		imap.Close()
+	} else {
+		//
+		// Otherwise we will show an error
+		//
+		x.Error = err.Error()
+	}
 
 	//
 	// Load our template source.
@@ -555,6 +296,7 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 
 	//
 	// If there were errors, then show them.
+	//
 	if err != nil {
 		fmt.Fprintf(response, err.Error())
 		return
@@ -578,22 +320,58 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 		http.Redirect(response, request, "/login", 302)
 	}
 
+	//
+	// Get the name of the folder we're going to display
+	//
 	vars := mux.Vars(request)
 	folder := vars["name"]
 
+	//
+	// This is the page-data we'll return
+	//
 	type PageData struct {
+		Error    string
 		Messages []Message
 		Folder   string
 		Folders  []string
 	}
 
+	//
+	// Create an instance of the object so we can populate
+	// our template.
+	//
 	var x PageData
 	var err error
-	x.Folders, _ = Folders(host.(string), user.(string), pass.(string))
+
+	//
+	// Fill it up
+	//
 	x.Folder = folder
-	x.Messages, err = Messages(folder, host.(string), user.(string), pass.(string))
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
+
+	//
+	// Create an IMAP object.
+	//
+	imap := NewIMAP(host.(string), user.(string), pass.(string))
+
+	//
+	// If we logged in then we can get the folders/messages
+	//
+	res, err := imap.Connect()
+	if (res == true) && (err == nil) {
+		x.Folders, err = imap.Folders()
+		if err != nil {
+			x.Error = err.Error()
+		}
+		x.Messages, err = imap.Messages(folder)
+		if err != nil {
+			x.Error = err.Error()
+		}
+		imap.Close()
+	} else {
+		//
+		// Otherwise we will show an error
+		//
+		x.Error = err.Error()
 	}
 
 	//
@@ -640,27 +418,58 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 		http.Redirect(response, request, "/login", 302)
 	}
 
+	//
+	// Get the name of the folder, and the number of the message
+	// we're supposed to display
+	//
 	vars := mux.Vars(request)
-	number := vars["number"]
+	uid := vars["number"]
 	folder := vars["folder"]
 
 	//
-	// How we'll populate the template
+	// This is the page-data we'll return
 	//
 	type PageData struct {
+		Error   string
 		Body    string
 		Folder  string
 		Folders []string
 	}
 
+	//
+	// Create an instance of the object so we can populate
+	// our template.
+	//
 	var x PageData
 	var err error
-	x.Folders, _ = Folders(host.(string), user.(string), pass.(string))
-	x.Folder = folder
-	x.Body, err = GetMessage(number, folder, host.(string), user.(string), pass.(string))
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
+
+	//
+	// Create an IMAP object.
+	//
+	imap := NewIMAP(host.(string), user.(string), pass.(string))
+
+	//
+	// If we logged in then we can get the folders/messages
+	//
+	res, err := imap.Connect()
+	if (res == true) && (err == nil) {
+		x.Folders, err = imap.Folders()
+		if err != nil {
+			x.Error = err.Error()
+		}
+		x.Body, err = imap.GetMessage(uid, folder)
+		if err != nil {
+			x.Error = err.Error()
+		}
+		imap.Close()
+	} else {
+		//
+		// Otherwise we will show an error
+		//
+		x.Error = err.Error()
 	}
+
+	x.Folder = folder
 
 	//
 	// Load our template source.
