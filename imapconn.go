@@ -11,6 +11,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -392,6 +393,36 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	tmp.Text = mime.Text
 	tmp.RAW = raw
 	tmp.HTML = string(bluemonday.UGCPolicy().SanitizeBytes([]byte(mime.HTML)))
+	//
+	// If the text-part is empty then that is because it is not
+	// a MIME message at all.  Instead we'll have to use a horrid
+	// hack.
+	//
+	// Such is life when it comes to email.
+	//
+	if tmp.Text == "" {
+
+		//
+		// We have the raw-message in `raw`.
+		//
+		// The body will be the thing from the first blank-line
+		// until the EOF
+		//
+		inHeader := true
+
+		scanner := bufio.NewScanner(strings.NewReader(raw))
+		for scanner.Scan() {
+
+			if inHeader {
+				if scanner.Text() == "" {
+					inHeader = false
+				}
+			} else {
+				tmp.Text += scanner.Text() + "\n"
+			}
+		}
+	}
+
 	//
 	// If we had a non-empty HTML-section then mark that as being
 	// the case.
