@@ -6,10 +6,12 @@ This repository contains a simple webmail implementation for golang:
   * Retrieve the list of remote folders.
   * Open a folder and see the most recent 50 messages in it.
      * Unread messages will be displayed in bold.
+     * Messages which have been replied to will be shown with an icon.
+     * Messages with attachments will display a "paperclip" next to them.
   * For any message in the folder list you can retrieve it
      * Which will also mark the message as being read.
-     * The message will be displayed as (filtered) HTML if available.
-     * Otherwise plaintext will be shown.
+     * The message will be displayed as (filtered) HTML, Plain text, and RAW as applicable.
+     * Attachments will be displayed and may be downloaded.
 
 This application has been tested against three remote IMAP hosts:
 
