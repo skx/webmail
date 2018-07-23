@@ -39,12 +39,13 @@ type IMAPConnection struct {
 // Message is a very minimal structure for a message in a folder.
 // It is used in `GetMessages` and nowhere else.
 type Message struct {
-	New     bool
-	ID      string
-	To      string
-	From    string
-	Date    string
-	Subject string
+	New         bool
+	ID          string
+	To          string
+	From        string
+	Date        string
+	Subject     string
+	Attachments bool
 }
 
 // SingleMessage is used to display a single message-view.
@@ -229,32 +230,45 @@ func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
 	messages := make(chan *imap.Message, 10)
 	done := make(chan error, 1)
 	go func() {
-		done <- s.conn.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope, imap.FetchFlags}, messages)
+		done <- s.conn.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope, imap.FetchFlags, imap.FetchBodyStructure}, messages)
 	}()
 
 	//
 	// Here we create instances of the `Message` object and append to
 	// our list
 	//
-	// TODO: Reverse the list
-	//
 	for msg := range messages {
 		fr := msg.Envelope.From[0].MailboxName + "@" + msg.Envelope.From[0].HostName
 		to := msg.Envelope.To[0].MailboxName + "@" + msg.Envelope.To[0].HostName
 
-		var new bool
-		new = true
+		// Is this message new?
+		new := true
+
+		// Are there attachments with this message?
+		attach := false
+
 		for _, x := range msg.Flags {
 			if x == "\\Seen" {
 				new = false
 			}
 		}
+
+		// Attempt to guess if an attachment is present.
+		if len(msg.BodyStructure.Parts) > 0 {
+			for _, e := range msg.BodyStructure.Parts {
+				if e.Disposition == "attachment" {
+					attach = true
+				}
+			}
+		}
+
 		x := Message{Subject: msg.Envelope.Subject,
-			Date: msg.Envelope.Date.String(),
-			From: fr,
-			ID:   fmt.Sprintf("%d", msg.SeqNum),
-			To:   to,
-			New:  new,
+			Date:        msg.Envelope.Date.String(),
+			From:        fr,
+			Attachments: attach,
+			ID:          fmt.Sprintf("%d", msg.SeqNum),
+			To:          to,
+			New:         new,
 		}
 		res = prepend(res, x)
 	}

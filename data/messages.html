@@ -70,10 +70,10 @@
         <p>{{.Error}}</p>
         {{else}}
         <table class="table table-striped table-hover table-bordered table-condensed">
-          <tr><th>Date</th><th>From</th><th>Subject</th></tr>
+          <tr><th></th><th>Date</th><th>From</th><th>Subject</th></tr>
           {{range .Messages }}
 
-          <tr data-href="/message/{{.ID}}/{{$.Folder}}" {{ if .New }}style="font-weight: bold;" {{end}}><td>{{ .Date }}</td><td>{{ .From }}</td><td>{{ .Subject }}</td></tr>
+          <tr data-href="/message/{{.ID}}/{{$.Folder}}" {{ if .New }}style="font-weight: bold;" {{end}}><td>{{ if .Attachments }}<span class="glyphicon glyphicon-paperclip" aria-hidden="true"></span>{{end}}</td><td>{{ .Date }}</td><td>{{ .From }}</td><td>{{ .Subject }}</td></tr>
           {{end}}
         </table>
         {{end}}
