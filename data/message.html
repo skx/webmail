@@ -79,7 +79,24 @@
         </table>
 
         <!-- Body -->
-        {{ .Message.Body }}
+
+<nav>
+  <ul class="nav nav-tabs">
+    {{ if .Message.HasHTML }}
+    <li class="{{ if .Message.HasHTML }}active{{end}}">
+      <a href="#body-html" aria-controls="body-html" role="tab" data-toggle="tab">HTML</a>
+    </li>
+    {{ end }}
+    <li class="{{ if .Message.HasHTML }}{{else}}active{{end}}">
+      <a href="#body-text" aria-controls="body-text" role="tab" data-toggle="tab">Text</a>
+    </li>
+  </ul>
+</nav>
+<div class="tab-content">
+  <div role="tabpanel" class="tab-pane face in {{ if .Message.HasHTML }}active{{ end }}" id="body-html">{{ .Message.HTML }}</div>
+  <div role="tabpanel" class="tab-pane fade in {{ if .Message.HasHTML }} {{ else }} active{{ end }}" id="body-text"><pre>{{ .Message.Text}}</pre></div>
+</div>
+
         {{end}}
       </div>
     </div>

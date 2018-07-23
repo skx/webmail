@@ -50,7 +50,9 @@ type Message struct {
 // SingleMessage is used to display a single message-view.
 type SingleMessage struct {
 	Headers map[string]string
-	Body    string
+	HTML    string
+	Text    string
+	HasHTML bool
 }
 
 func prepend(arr []Message, item Message) []Message {
@@ -346,9 +348,10 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	//
 	// Now save the body
 	//
-	tmp.Body = string(bluemonday.UGCPolicy().SanitizeBytes([]byte(mime.HTML)))
-	if len(tmp.Body) < 1 {
-		tmp.Body = "<pre>" + mime.Text + "</pre>"
+	tmp.Text = mime.Text
+	tmp.HTML = string(bluemonday.UGCPolicy().SanitizeBytes([]byte(mime.HTML)))
+	if tmp.HTML != "" {
+		tmp.HasHTML = true
 	}
 	return tmp, nil
 }
