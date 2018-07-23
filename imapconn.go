@@ -46,6 +46,7 @@ type Message struct {
 	Date        string
 	Subject     string
 	Attachments bool
+	Replied     bool
 }
 
 // SingleMessage is used to display a single message-view.
@@ -247,9 +248,15 @@ func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
 		// Are there attachments with this message?
 		attach := false
 
+		// Is this message been replied to?
+		replied := false
+
 		for _, x := range msg.Flags {
 			if x == "\\Seen" {
 				new = false
+			}
+			if x == "\\Answered" {
+				replied = true
 			}
 		}
 
@@ -266,6 +273,7 @@ func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
 			Date:        msg.Envelope.Date.String(),
 			From:        fr,
 			Attachments: attach,
+			Replied:     replied,
 			ID:          fmt.Sprintf("%d", msg.SeqNum),
 			To:          to,
 			New:         new,
