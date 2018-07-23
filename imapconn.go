@@ -44,6 +44,10 @@ type Message struct {
 	Subject string
 }
 
+func prepend(arr []Message, item Message) []Message {
+	return append([]Message{item}, arr...)
+}
+
 // New returns a new IMAPConnection object.
 func NewIMAP(uri string, user string, pass string) *IMAPConnection {
 	obj := &IMAPConnection{uri: uri, user: user, pass: pass}
@@ -236,7 +240,7 @@ func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
 			To:   to,
 			New:  new,
 		}
-		res = append(res, x)
+		res = prepend(res, x)
 	}
 
 	if err := <-done; err != nil {
