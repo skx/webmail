@@ -266,7 +266,7 @@ func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
 				if e.Disposition == "attachment" {
 					attach = true
 				}
-				if e.Disposition == "inline" {
+				if e.Disposition == "inline" && e.Params["name"] != "" {
 					attach = true
 				}
 			}
@@ -412,7 +412,9 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	// And copy any inline attachments too.
 	//
 	for _, i := range mime.Inlines {
-		tmp.Attachments = append(tmp.Attachments, i)
+		if i.FileName() != "" {
+			tmp.Attachments = append(tmp.Attachments, i)
+		}
 	}
 
 	//
