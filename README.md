@@ -60,7 +60,7 @@ out an option the flow goes:
 * The server sends the response to your client.
 
 This means that things are slower than they would be if there were a dedicated
-proxy maintaining a persistant connection to the IMAP server.
+proxy maintaining a persistent connection to the IMAP server.
 
 
 ## Missing Features
