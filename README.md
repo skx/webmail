@@ -80,7 +80,6 @@ You cannot:
 * Forward a message.
 * Page backwards/forwards in message-lists.
 * Compose a fresh message.
-* View message attachments.
 
 Some of those would be simple to add, others more complex.
 
