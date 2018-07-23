@@ -34,7 +34,7 @@ Build the application and start it:
 
      ~$ webmail
 
-Now point your favourite browser at http://localhost:8080/ and fill in the detail.  For example if you wished to test against Google-mail you'd enter the following values:
+Now point your favourite browser at http://localhost:8080/ and fill in the appropriate details.  For example if you wished to test against Google-mail you'd enter the following values:
 
 
 | Value    | Setting                 |
@@ -59,7 +59,7 @@ out an option the flow goes:
   * The IMAP server connection is closed.
 * The server sends the response to your client.
 
-THis means that things are slower than they would be if there were a dedicated
+This means that things are slower than they would be if there were a dedicated
 proxy maintaining a persistant connection to the IMAP server.
 
 
