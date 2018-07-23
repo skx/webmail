@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/mail"
 	"net/url"
 	"sort"
 	"strconv"
@@ -23,6 +24,8 @@ import (
 
 	imap "github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
+	"github.com/jhillyerd/go.enmime"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 // IAMPConnection handles the the connection to a back-end IMAP(S) server.
@@ -42,6 +45,12 @@ type Message struct {
 	From    string
 	Date    string
 	Subject string
+}
+
+// SingleMessage is used to display a single message-view.
+type SingleMessage struct {
+	Headers map[string]string
+	Body    string
 }
 
 func prepend(arr []Message, item Message) []Message {
@@ -251,13 +260,14 @@ func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
 }
 
 // GetMessage returns the text of a single message.
-func (s *IMAPConnection) GetMessage(uid string, folder string) (string, error) {
+func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, error) {
 	var err error
+	tmp := SingleMessage{}
 
 	// Select the folder
 	_, err = s.conn.Select(folder, false)
 	if err != nil {
-		return "", err
+		return tmp, err
 	}
 
 	//
@@ -269,8 +279,6 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (string, error) {
 
 	//
 	// Get the whole message body
-	//
-	// TODO: Do better.
 	//
 	section := &imap.BodySectionName{}
 	items := []imap.FetchItem{section.FetchItem()}
@@ -284,12 +292,63 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (string, error) {
 
 	msg := <-messages
 	if msg == nil {
-		return "", errors.New("Server didn't return the message.")
+		return tmp, errors.New("Server didn't return the message.")
 	}
 
 	//
-	// Hack - we just return the complete message
+	// Parse the body
 	//
-	txt := fmt.Sprintf("%s\n", msg.GetBody(section))
-	return txt, nil
+
+	r := strings.NewReader(fmt.Sprintf("%s", msg.GetBody(section)))
+	m, err := mail.ReadMessage(r)
+	if err != nil {
+		return tmp, err
+	}
+
+	var mime *enmime.MIMEBody
+	mime, err = enmime.ParseMIMEBody(m)
+	if err != nil {
+		return tmp, fmt.Errorf("During enmime.ParseMIMEBody: %v", err)
+	}
+
+	//
+	// Now create the object
+	//
+	tmp.Headers = make(map[string]string)
+
+	for k := range m.Header {
+		switch strings.ToLower(k) {
+		case "date", "subject":
+			tmp.Headers[k] = mime.GetHeader(k)
+		}
+	}
+
+	for _, hkey := range enmime.AddressHeaders {
+		addrlist, err := mime.AddressList(hkey)
+		if err != nil {
+			if err == mail.ErrHeaderNotPresent {
+				continue
+			}
+			panic(err)
+		}
+
+		for _, addr := range addrlist {
+			cur := tmp.Headers[hkey]
+			if cur != "" {
+				cur += ", "
+			}
+			cur += "\"" + addr.Name + "\" &lt;" + addr.Address + "&gt;"
+
+			tmp.Headers[hkey] = cur
+		}
+	}
+
+	//
+	// Now save the body
+	//
+	tmp.Body = string(bluemonday.UGCPolicy().SanitizeBytes([]byte(mime.HTML)))
+	if len(tmp.Body) < 1 {
+		tmp.Body = "<pre>" + mime.Text + "</pre>"
+	}
+	return tmp, nil
 }

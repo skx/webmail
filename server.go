@@ -8,10 +8,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"text/template"
 	"time"
 
 	"github.com/gorilla/handlers"
@@ -431,7 +431,7 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	type PageData struct {
 		Error   string
-		Body    string
+		Message SingleMessage
 		Folder  string
 		Folders []string
 	}
@@ -457,7 +457,7 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			x.Error = err.Error()
 		}
-		x.Body, err = imap.GetMessage(uid, folder)
+		x.Message, err = imap.GetMessage(uid, folder)
 		if err != nil {
 			x.Error = err.Error()
 		}

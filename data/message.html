@@ -70,7 +70,16 @@
         {{if .Error}}
         <p>{{.Error}}</p>
         {{else}}
-        <pre>{{.Body }}</pre>
+
+        <!-- Headers -->
+        <table class="table table-striped table-hover table-bordered table-condensed">
+        {{range $key, $value := .Message.Headers }}
+          <tr><td>{{ $key }}</td><td> {{ $value }}</td></tr>
+          {{end}}
+        </table>
+
+        <!-- Body -->
+        {{ .Message.Body }}
         {{end}}
       </div>
     </div>
