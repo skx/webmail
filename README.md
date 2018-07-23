@@ -19,7 +19,11 @@ All perform well, though in all honesty my own server performs the worst
 because I have ~1000 mailboxes.  So just getting the folder list takes
 some time I'd rather avoid.
 
+# Screenshots
 
+There are a collection of screenshots here:
+
+* [SCREENSHOTS.md](SCREENSHOTS.md)
 
 ## Installation
 
