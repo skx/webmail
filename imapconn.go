@@ -219,7 +219,7 @@ func (s *IMAPConnection) Folders() ([]string, error) {
 
 // Messages returns the most recent messages in the given folder.
 //
-func (s *IMAPConnection) Messages(folder string, offset int) ([]Message, error) {
+func (s *IMAPConnection) Messages(folder string, offset int) ([]Message, int, int, error) {
 
 	var err error
 	var res []Message
@@ -227,7 +227,7 @@ func (s *IMAPConnection) Messages(folder string, offset int) ([]Message, error) 
 	// Select the given folder
 	mbox, err := s.conn.Select(folder, false)
 	if err != nil {
-		return res, err
+		return res, 0, 0, err
 	}
 
 	//
@@ -249,7 +249,7 @@ func (s *IMAPConnection) Messages(folder string, offset int) ([]Message, error) 
 	var uids []uint32
 	uids, err = s.conn.Search(criteria)
 	if err != nil {
-		return res, err
+		return res, 0, 0, err
 	}
 
 	//
@@ -344,10 +344,10 @@ func (s *IMAPConnection) Messages(folder string, offset int) ([]Message, error) 
 	}
 
 	if err := <-done; err != nil {
-		return nil, err
+		return nil, 0, 0, err
 	}
 
-	return res, nil
+	return res, 0, int(mbox.Messages), nil
 }
 
 // GetMessage returns the text of a single message.

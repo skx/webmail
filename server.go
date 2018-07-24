@@ -345,6 +345,12 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 		Messages []Message
 		Folder   string
 		Folders  []string
+
+		// Previous & Next offsets for paging.  If available.
+		Min  int
+		Max  int
+		Prev string
+		Next string
 	}
 
 	//
@@ -373,7 +379,7 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			x.Error = err.Error()
 		}
-		x.Messages, err = imap.Messages(folder, offset)
+		x.Messages, x.Min, x.Max, err = imap.Messages(folder, offset)
 		if err != nil {
 			x.Error = err.Error()
 		}
@@ -384,6 +390,31 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 		//
 		x.Error = err.Error()
 		imap.Close()
+	}
+
+	//
+	// Setup paging.
+	//
+	if offset < 0 {
+		//
+		// No offset right now.
+		//
+		x.Prev = fmt.Sprintf("%d", x.Max-50)
+		x.Next = ""
+	} else {
+		//
+		// We're already scrolling.
+		//
+		if offset > 50 {
+			x.Prev = fmt.Sprintf("%d", offset-50)
+		} else {
+			x.Prev = "50"
+		}
+		if offset+50 < x.Max {
+			x.Next = fmt.Sprintf("%d", offset+50)
+		} else {
+			x.Next = fmt.Sprintf("%d", x.Max)
+		}
 	}
 
 	//
