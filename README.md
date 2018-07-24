@@ -4,10 +4,11 @@ This repository contains a simple webmail implementation for golang:
 
 * You can connect to a remote IMAP server and perform basic operations
   * Retrieve the list of remote folders.
-  * Open a folder and see the most recent 50 messages in it.
+  * Open a folder and see the appropriate messages.
      * Unread messages will be displayed in bold.
      * Messages which have been replied to will be shown with an icon.
      * Messages with attachments will display a "paperclip" next to them.
+     * You can page back/forward by 50 messages.
   * For any message in the folder list you can retrieve it
      * Which will also mark the message as being read.
      * The message will be displayed as (filtered) HTML, Plain text, and RAW as applicable.
@@ -78,7 +79,6 @@ You cannot:
 * Delete a message.
 * Reply to a message.
 * Forward a message.
-* Page backwards/forwards in message-lists.
 * Compose a fresh message.
 
 Some of those would be simple to add, others more complex.
@@ -103,6 +103,18 @@ binary to make your changes:
 
     implant -input data/ -output static.go
     go build .
+
+
+## Thanks
+
+This project wouldn't have been possible without the use of some excellent libraries:
+
+* The go-imap library, which we use extensively:
+  * https://github.com/emersion/go-imap/
+* The go.enmime library we use for parsing emails, and attachments:
+   * https://github.com/jhillyerd/go.enmime/
+* The following HTML-sanitizer makes the display of HTML-messages less dangerous:
+   * https://github.com/microcosm-cc/bluemonday
 
 
 Steve
