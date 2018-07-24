@@ -16,7 +16,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/mail"
 	"net/url"
 	"sort"
 	"strconv"
@@ -25,7 +24,7 @@ import (
 
 	imap "github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
-	"github.com/jhillyerd/go.enmime"
+	"github.com/jhillyerd/enmime"
 	"github.com/microcosm-cc/bluemonday"
 )
 
@@ -68,7 +67,7 @@ type SingleMessage struct {
 	Text           string
 	RAW            string
 	HasHTML        bool
-	Attachments    []enmime.MIMEPart
+	Attachments    []*enmime.Part
 	HasAttachments bool
 }
 
@@ -427,21 +426,17 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	}
 
 	//
-	// Get the body of the message as a string, and pass it to the
-	// golang net/mail object.
+	// Get the body of the message as a string, and pass it to a
+	// reader-object.
 	//
 	raw := fmt.Sprintf("%s", msg.GetBody(section))
-	r := strings.NewReader(raw)
-	m, err := mail.ReadMessage(r)
-	if err != nil {
-		return tmp, err
-	}
+	reader := strings.NewReader(raw)
 
 	//
-	// Now pass the net/mail object to the enmime-library.
+	// Now pass that reader-object to the enmime-library.
 	//
-	var mime *enmime.MIMEBody
-	mime, err = enmime.ParseMIMEBody(m)
+	var mime *enmime.Envelope
+	mime, err = enmime.ReadEnvelope(reader)
 	if err != nil {
 		return tmp, fmt.Errorf("During enmime.ParseMIMEBody: %v", err)
 	}
@@ -452,36 +447,37 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	tmp.Headers = make(map[string]string)
 
 	//
-	// Copy "some" headers into that map.
+	// Copy some interesting headers from the message.
 	//
-	for k := range m.Header {
-		switch strings.ToLower(k) {
-		case "date", "subject":
-			tmp.Headers[k] = mime.GetHeader(k)
-		}
+	header_keys := []string{"Date", "Subject"}
+	for _, key := range header_keys {
+		tmp.Headers[key] = mime.Root.Header.Get(key)
 	}
 
 	//
-	// Now handle the address-lists in the to/cc/from
-	// headers.
+	// Now handle the address-lists in the to/cc/from  headers.
 	//
-	for _, hkey := range enmime.AddressHeaders {
-		addrlist, err := mime.AddressList(hkey)
-		if err != nil {
-			if err == mail.ErrHeaderNotPresent {
-				continue
-			}
-			panic(err)
-		}
-
+	keys := []string{"To", "From", "Cc"}
+	for _, key := range keys {
+		addrlist, _ := mime.AddressList(key)
 		for _, addr := range addrlist {
-			cur := tmp.Headers[hkey]
+			cur := tmp.Headers[key]
 			if cur != "" {
 				cur += ", "
 			}
-			cur += "\"" + addr.Name + "\" &lt;" + addr.Address + "&gt;"
 
-			tmp.Headers[hkey] = cur
+			//
+			// Only show the name if it is non-empty.
+			//
+			name := ""
+			if len(addr.Name) > 0 {
+				name = "&quot;" + addr.Name + "&quot;"
+			}
+
+			cur += name
+			cur += "&lt;" + addr.Address + "&gt;"
+
+			tmp.Headers[key] = cur
 		}
 	}
 
@@ -492,19 +488,17 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	tmp.RAW = raw
 	tmp.HTML = string(bluemonday.UGCPolicy().SanitizeBytes([]byte(mime.HTML)))
 	//
-	// If the text-part is empty then that is because it is not
-	// a MIME message at all.  Instead we'll have to use a horrid
-	// hack.
+	// If the text-part is empty then that is because this message is not
+	// a MIME message at all.  Instead we'll have to use a horrid hack.
 	//
-	// Such is life when it comes to email.
+	// (Such is life when it comes to email.)
 	//
 	if tmp.Text == "" {
 
 		//
 		// We have the raw-message in `raw`.
 		//
-		// The body will be the thing from the first blank-line
-		// until the EOF
+		// The body will be between the first blank-line & EOF.
 		//
 		inHeader := true
 
@@ -541,7 +535,7 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	// And copy any inline attachments too.
 	//
 	for _, i := range mime.Inlines {
-		if i.FileName() != "" {
+		if i.FileName != "" {
 			tmp.Attachments = append(tmp.Attachments, i)
 		}
 	}

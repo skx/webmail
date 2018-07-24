@@ -610,13 +610,13 @@ func attachmentHandler(response http.ResponseWriter, request *http.Request) {
 	// Now loop over the attachments
 	//
 	for _, e := range msg.Attachments {
-		if e.FileName() == filename {
+		if e.FileName == filename {
 
 			//
 			// Set the content-type
 			//
-			response.Header().Set("Content-Type", e.ContentType())
-			response.Write(e.Content())
+			response.Header().Set("Content-Type", e.ContentType)
+			response.Write(e.Content)
 
 			return
 		}

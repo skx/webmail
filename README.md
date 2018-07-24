@@ -111,8 +111,8 @@ This project wouldn't have been possible without the use of some excellent libra
 
 * The go-imap library, which we use extensively:
   * https://github.com/emersion/go-imap/
-* The go.enmime library we use for parsing emails, and attachments:
-   * https://github.com/jhillyerd/go.enmime/
+* The enmime library we use for parsing emails, and attachments:
+   * https://github.com/jhillyerd/enmime
 * The following HTML-sanitizer makes the display of HTML-messages less dangerous:
    * https://github.com/microcosm-cc/bluemonday
 
