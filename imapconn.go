@@ -29,7 +29,16 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-// IAMPConnection handles the the connection to a back-end IMAP(S) server.
+// IMAPFolder contains details about a single folder
+type IMAPFolder struct {
+	// The name of the folder.
+	Name string
+
+	// Does this folder contain unread messages?
+	Unread bool
+}
+
+// IMAPConnection handles the the connection to a back-end IMAP(S) server.
 type IMAPConnection struct {
 	uri  string
 	user string
@@ -187,7 +196,7 @@ func (s *IMAPConnection) Close() {
 // when you have a lot of folders:
 //  https://play.golang.org/p/jdCRMheabcA
 //
-func (s *IMAPConnection) Folders() ([]string, error) {
+func (s *IMAPConnection) Folders(unread bool) ([]IMAPFolder, error) {
 
 	var res []string
 
@@ -204,7 +213,7 @@ func (s *IMAPConnection) Folders() ([]string, error) {
 
 	// Wait for completion
 	if err := <-done; err != nil {
-		return res, err
+		return nil, err
 	}
 
 	//
@@ -214,7 +223,38 @@ func (s *IMAPConnection) Folders() ([]string, error) {
 		return strings.ToLower(res[i]) < strings.ToLower(res[j])
 	})
 
-	return res, nil
+	//
+	// Now build up the return value.
+	//
+	var tmp []IMAPFolder
+
+	//
+	// If we're not showing unread indicators for folders we're simple.
+	//
+	for _, name := range res {
+
+		new := false
+
+		//
+		// But if we do we have to select the folder
+		// and see if there are unread messages.
+		//
+		if unread {
+
+			//
+			// Select.
+			//
+			folder, err := s.conn.Select(name, false)
+			if err == nil {
+				// Look to see if there are unread messages.
+				new = folder.UnseenSeqNum > 0
+			}
+		}
+		x := IMAPFolder{Name: name, Unread: new}
+		tmp = append(tmp, x)
+	}
+
+	return tmp, nil
 }
 
 // Messages returns the most recent messages in the given folder.

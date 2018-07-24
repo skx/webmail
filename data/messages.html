@@ -61,7 +61,7 @@
 
         <div class="list-group" id="folders">
           {{range .Folders }}
-          <a class="list-group-item btn btn-default folder" style="text-align:left" href="/folder/{{.}}" role="button">{{.}}</a>
+          <a class="list-group-item btn btn-default folder" style="text-align:left" href="/folder/{{.Name}}" role="button">{{if .Unread}}<b>{{end}}{{.Name}}{{if .Unread}}</b>{{end}}</a>
           {{end}}
         </div>
       </div>

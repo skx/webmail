@@ -7,6 +7,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -20,10 +21,17 @@ import (
 	"github.com/gorilla/securecookie"
 )
 
-//
-// The secure-cookie object we use.
-//
-var cookieHandler *securecookie.SecureCookie
+var (
+	//
+	// The secure-cookie object we use.
+	//
+	cookieHandler *securecookie.SecureCookie
+
+	//
+	// Should we show unread-folders in bold?
+	//
+	UNREAD *bool
+)
 
 // LoadCookie loads the persistent cookies from disc, if they exist.
 func LoadCookie() {
@@ -243,7 +251,7 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	type PageData struct {
 		Error   string
-		Folders []string
+		Folders []IMAPFolder
 	}
 
 	//
@@ -262,7 +270,7 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	res, err := imap.Connect()
 	if (res == true) && (err == nil) {
-		x.Folders, err = imap.Folders()
+		x.Folders, err = imap.Folders(*UNREAD)
 		imap.Close()
 		if err != nil {
 			x.Error = err.Error()
@@ -344,7 +352,7 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 		Error    string
 		Messages []Message
 		Folder   string
-		Folders  []string
+		Folders  []IMAPFolder
 
 		// Previous & Next offsets for paging.  If available.
 		Min  int
@@ -375,7 +383,7 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	res, err := imap.Connect()
 	if (res == true) && (err == nil) {
-		x.Folders, err = imap.Folders()
+		x.Folders, err = imap.Folders(*UNREAD)
 		if err != nil {
 			x.Error = err.Error()
 		}
@@ -476,7 +484,7 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 		Error   string
 		Message SingleMessage
 		Folder  string
-		Folders []string
+		Folders []IMAPFolder
 	}
 
 	//
@@ -496,7 +504,7 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	res, err := imap.Connect()
 	if (res == true) && (err == nil) {
-		x.Folders, err = imap.Folders()
+		x.Folders, err = imap.Folders(*UNREAD)
 		if err != nil {
 			x.Error = err.Error()
 		}
@@ -635,6 +643,12 @@ func logoutHandler(response http.ResponseWriter, request *http.Request) {
 }
 
 func main() {
+
+	//
+	// Flag handling
+	//
+	UNREAD = flag.Bool("unread", false, "Should we show unread folders?")
+	flag.Parse()
 
 	//
 	// Configure our secure cookies
