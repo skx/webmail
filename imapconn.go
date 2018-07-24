@@ -63,6 +63,8 @@ type SingleMessage struct {
 	HasAttachments bool
 }
 
+// prepend adds a single message to the start of the array.
+// It is used when retrieving the list of messages.
 func prepend(arr []Message, item Message) []Message {
 	return append([]Message{item}, arr...)
 }
@@ -168,7 +170,8 @@ func (s *IMAPConnection) Connect() (bool, error) {
 
 }
 
-// Close closes our connection to the remote IMAP(S) server
+// Close closes our connection to the remote IMAP(S) server.
+// Calling this more than once is pointless, but permitted.
 func (s *IMAPConnection) Close() {
 	if s.conn != nil {
 		s.conn.Logout()
@@ -176,7 +179,14 @@ func (s *IMAPConnection) Close() {
 	s.conn = nil
 }
 
-// Folders returns the list of folders our remote IMAP(S) server contains
+// Folders returns the list of folders our remote IMAP(S) server contains.
+// Note that due to speed concerns the list only contains the names of the
+// folders - and not whether there are any unread messages in the folder.
+//
+// This can be resolved via "selecting" each folder, but it is slow
+// when you have a lot of folders:
+//  https://play.golang.org/p/jdCRMheabcA
+//
 func (s *IMAPConnection) Folders() ([]string, error) {
 
 	var res []string
@@ -198,9 +208,8 @@ func (s *IMAPConnection) Folders() ([]string, error) {
 	}
 
 	//
-	// Sort the list of mailboxes.
+	// Sort the list of mailboxes in a case-insensitive fashion.
 	//
-
 	sort.Slice(res, func(i, j int) bool {
 		return strings.ToLower(res[i]) < strings.ToLower(res[j])
 	})
@@ -209,7 +218,8 @@ func (s *IMAPConnection) Folders() ([]string, error) {
 }
 
 // Messages returns the most recent messages in the given folder.
-func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
+//
+func (s *IMAPConnection) Messages(folder string, offset int) ([]Message, error) {
 
 	var err error
 	var res []Message
@@ -220,19 +230,64 @@ func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
 		return res, err
 	}
 
-	// Get the last 50 messages
-	from := uint32(1)
-	to := mbox.Messages
-	if mbox.Messages > 50 {
-		from = mbox.Messages - 50
+	//
+	// If the offset is missing then we start at "max" and
+	// work backwards.
+	//
+	if offset < 0 {
+		offset = int(mbox.Messages)
 	}
-	seqset := new(imap.SeqSet)
-	seqset.AddRange(from, to)
 
+	//
+	// Perform a search to get the numbers which are available.
+	//
+	// Here we're doing the smallest search we can "messages which
+	// arrived before 'now'".
+	//
+	criteria := imap.NewSearchCriteria()
+	criteria.Before = time.Now()
+	var uids []uint32
+	uids, err = s.conn.Search(criteria)
+	if err != nil {
+		return res, err
+	}
+
+	//
+	// So now we'll have "uids" complete with ALL the IDs which
+	// are available.
+	//
+	seqsets := new(imap.SeqSet)
+	seqsets.AddNum(uids...)
+
+	//
+	// Reverse the list
+	//
+	for i, j := 0, len(uids)-1; i < j; i, j = i+1, j-1 {
+		uids[i], uids[j] = uids[j], uids[i]
+	}
+
+	//
+	// Add the first 50 numbers which are less than the
+	// given offset to the result-list
+	//
+	retrieve := new(imap.SeqSet)
+	count := 0
+	for _, num := range uids {
+		if num <= uint32(offset) {
+			if count < 50 {
+				retrieve.AddNum(num)
+				count++
+			}
+		}
+	}
+
+	//
+	// Now we can retrieve those messages.
+	//
 	messages := make(chan *imap.Message, 10)
 	done := make(chan error, 1)
 	go func() {
-		done <- s.conn.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope, imap.FetchFlags, imap.FetchBodyStructure}, messages)
+		done <- s.conn.Fetch(retrieve, []imap.FetchItem{imap.FetchEnvelope, imap.FetchFlags, imap.FetchBodyStructure}, messages)
 	}()
 
 	//
@@ -241,7 +296,10 @@ func (s *IMAPConnection) Messages(folder string) ([]Message, error) {
 	//
 	for msg := range messages {
 		fr := msg.Envelope.From[0].MailboxName + "@" + msg.Envelope.From[0].HostName
-		to := msg.Envelope.To[0].MailboxName + "@" + msg.Envelope.To[0].HostName
+		to := ""
+		if len(msg.Envelope.To) > 0 {
+			to = msg.Envelope.To[0].MailboxName + "@" + msg.Envelope.To[0].HostName
+		}
 
 		// Is this message new?
 		new := true

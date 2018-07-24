@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -326,6 +327,15 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	vars := mux.Vars(request)
 	folder := vars["name"]
+	start := vars["offset"]
+
+	//
+	// Start offset of paging, if any.
+	//
+	offset := -1
+	if start != "" {
+		offset, _ = strconv.Atoi(start)
+	}
 
 	//
 	// This is the page-data we'll return
@@ -363,7 +373,7 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			x.Error = err.Error()
 		}
-		x.Messages, err = imap.Messages(folder)
+		x.Messages, err = imap.Messages(folder, offset)
 		if err != nil {
 			x.Error = err.Error()
 		}
@@ -625,6 +635,8 @@ func main() {
 	//
 	// List of messages in the given folder.
 	//
+	router.HandleFunc("/folder/{name}/{offset}", messageListHandler).Methods("GET")
+	router.HandleFunc("/folder/{name}/{offset}/", messageListHandler).Methods("GET")
 	router.HandleFunc("/folder/{name}", messageListHandler).Methods("GET")
 	router.HandleFunc("/folder/{name}/", messageListHandler).Methods("GET")
 
