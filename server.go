@@ -33,6 +33,23 @@ var (
 	UNREAD *bool
 )
 
+// key is the type for a context-key
+//
+// We use context to store the remote host (URI), username, & password
+// in our session-cookie.
+type key int
+
+const (
+	// keyHost stores the host URI
+	keyHost key = iota
+
+	// keyUser stores the username.
+	keyUser key = iota
+
+	// keyPass stores the password
+	keyPass key = iota
+)
+
 // LoadCookie loads the persistent cookies from disc, if they exist.
 func LoadCookie() {
 
@@ -115,9 +132,9 @@ func AddContext(next http.Handler) http.Handler {
 				user := cookieValue["user"]
 				pass := cookieValue["pass"]
 				host := cookieValue["host"]
-				ctx := context.WithValue(r.Context(), "user", user)
-				ctx = context.WithValue(ctx, "pass", pass)
-				ctx = context.WithValue(ctx, "host", host)
+				ctx := context.WithValue(r.Context(), keyUser, user)
+				ctx = context.WithValue(ctx, keyPass, pass)
+				ctx = context.WithValue(ctx, keyHost, host)
 				//
 				// And fire it up.
 				//
@@ -223,7 +240,7 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 // is logged in it will redirect them to the folder-overview, otherwise
 // the login-form.
 func indexPageHandler(response http.ResponseWriter, request *http.Request) {
-	user := request.Context().Value("user")
+	user := request.Context().Value(keyUser)
 	if user == nil {
 		http.Redirect(response, request, "/login", 302)
 	}
@@ -235,9 +252,9 @@ func indexPageHandler(response http.ResponseWriter, request *http.Request) {
 // Show the folder-list
 //
 func folderListHandler(response http.ResponseWriter, request *http.Request) {
-	user := request.Context().Value("user")
-	pass := request.Context().Value("pass")
-	host := request.Context().Value("host")
+	user := request.Context().Value(keyUser)
+	pass := request.Context().Value(keyPass)
+	host := request.Context().Value(keyHost)
 
 	if user == nil || host == nil || pass == nil {
 		http.Redirect(response, request, "/login", 302)
@@ -319,9 +336,9 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 // Show the messages in the given folder.
 //
 func messageListHandler(response http.ResponseWriter, request *http.Request) {
-	user := request.Context().Value("user")
-	pass := request.Context().Value("pass")
-	host := request.Context().Value("host")
+	user := request.Context().Value(keyUser)
+	pass := request.Context().Value(keyPass)
+	host := request.Context().Value(keyHost)
 
 	if user == nil || host == nil || pass == nil {
 		http.Redirect(response, request, "/login", 302)
@@ -458,9 +475,9 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 
 // Show a single message.
 func messageHandler(response http.ResponseWriter, request *http.Request) {
-	user := request.Context().Value("user")
-	pass := request.Context().Value("pass")
-	host := request.Context().Value("host")
+	user := request.Context().Value(keyUser)
+	pass := request.Context().Value(keyPass)
+	host := request.Context().Value(keyHost)
 
 	if user == nil || host == nil || pass == nil {
 		http.Redirect(response, request, "/login", 302)
@@ -556,9 +573,9 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 
 // Download an attachment
 func attachmentHandler(response http.ResponseWriter, request *http.Request) {
-	user := request.Context().Value("user")
-	pass := request.Context().Value("pass")
-	host := request.Context().Value("host")
+	user := request.Context().Value(keyUser)
+	pass := request.Context().Value(keyPass)
+	host := request.Context().Value(keyHost)
 
 	if user == nil || host == nil || pass == nil {
 		http.Redirect(response, request, "/login", 302)
