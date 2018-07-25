@@ -74,6 +74,7 @@ func getResource(path string) ([]byte, error) {
 		//
 		if entry.Filename == path {
 			var raw bytes.Buffer
+			var err error
 
 			// Decode the data.
 			in, err := hex.DecodeString(entry.Contents)
@@ -83,6 +84,9 @@ func getResource(path string) ([]byte, error) {
 
 			// Gunzip the data to the client
 			gr, err := gzip.NewReader(bytes.NewBuffer(in))
+			if err != nil {
+				return nil, err
+			}
 			defer gr.Close()
 			data, err := ioutil.ReadAll(gr)
 			if err != nil {
