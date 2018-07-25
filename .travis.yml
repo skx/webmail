@@ -6,4 +6,14 @@ matrix:
   allow_failures:
   - go: tip
 script:
-  - ".travis/build-all"
+- ".travis/build-all"
+deploy:
+  provider: releases
+  api_key:
+    secure: f9//4vtLPaC4Uu/zpiJVQ/xT3269o1nETJooYOSCyUYp3/C2/YTto5e4pXVM5nv6lsQsZbr7TGvstMVBgSpSFVkHEtuVtu24g6aiTj07O4CNLgM7gGqed8WyO6Ze/bnQ82600IN6iV8Y1Zm/5I/AdFvSBncQ6zMzwBQa3rCtJ93H7ek1Zmt1xy7FJdoxQRWQzN2hhEJXcpP5+GFcVai+k4pCL/P14DtinSecspfy5T6kf3fHVUPWjwNkT13vaAguQJCz/37vbnZxY9V1ARkapEzxCnappBmmxYvLJ4iN8yYe9Vth/jHuh/DqfNcRVsjLnIjmIFX/cEixYpP+ZIo4tYWciCp2eJa6Z2EcqMj+VjaRfcjkBbClnz5pLp+NVgU6/PH+3vM/ZCUDVQrGna8KApbfBah0Ju120R8j07FFqGNGFaOrguVOxNBd8eNuNZDTC9SKHCGa24bimTvfPmLXF3QqK2QbmyP1TXwNFN8kSE8mBhKjJDUoL/8GOmVijjV24fSLKuzcYx3G0ka3lbgE2cCswyaWX5Ijhz6xXk+kVu/MbkqLlVkdhptSZv5qSk4K4kqNMtfsL1zmyxQ5sGDxLGHRr1DOv912kZIPVC87wPQq6rDlbaek09K84rbY0OSlTghVIifiCCefbTTe79WtUHrJnMqumhD+33L7bx5iHJI=
+  file_glob: true
+  file:
+    - "webmail-*"
+  skip_cleanup: true
+  on:
+    tags: true
