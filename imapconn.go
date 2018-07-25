@@ -77,7 +77,7 @@ func prepend(arr []Message, item Message) []Message {
 	return append([]Message{item}, arr...)
 }
 
-// New returns a new IMAPConnection object.
+// NewIMAP returns a new IMAPConnection object.
 func NewIMAP(uri string, user string, pass string) *IMAPConnection {
 	obj := &IMAPConnection{uri: uri, user: user, pass: pass}
 	return (obj)
@@ -449,8 +449,8 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	//
 	// Copy some interesting headers from the message.
 	//
-	header_keys := []string{"Date", "Subject"}
-	for _, key := range header_keys {
+	headerKeys := []string{"Date", "Subject"}
+	for _, key := range headerKeys {
 		tmp.Headers[key] = mime.Root.Header.Get(key)
 	}
 
