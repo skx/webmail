@@ -373,6 +373,10 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 		Max  int
 		Prev string
 		Next string
+
+		// Total/Unread counts
+		Unread int
+		Total  int
 	}
 
 	//
@@ -405,6 +409,9 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			x.Error = err.Error()
 		}
+
+		x.Total = x.Max
+		x.Unread = imap.Unread(folder)
 		imap.Close()
 	} else {
 		//
@@ -499,6 +506,10 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 		Message SingleMessage
 		Folder  string
 		Folders []IMAPFolder
+
+		// Unread/Total counts
+		Unread int
+		Total  int
 	}
 
 	//
@@ -526,6 +537,9 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			x.Error = err.Error()
 		}
+
+		x.Total = x.Message.Total
+		x.Unread = x.Message.Unread
 		imap.Close()
 	} else {
 		//

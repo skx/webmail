@@ -69,6 +69,12 @@ type SingleMessage struct {
 	HasHTML        bool
 	Attachments    []*enmime.Part
 	HasAttachments bool
+
+	// Count of messages in the folder
+	Total int
+
+	// Unread messages in the folder
+	Unread int
 }
 
 // prepend adds a single message to the start of the array.
@@ -256,6 +262,24 @@ func (s *IMAPConnection) Folders(unread bool) ([]IMAPFolder, error) {
 	return tmp, nil
 }
 
+func (s *IMAPConnection) Unread(folder string) int {
+	// Select the given folder
+	_, err := s.conn.Select(folder, false)
+	if err != nil {
+		return 0
+	}
+
+	// Search to count the unread messages
+	criteria := imap.NewSearchCriteria()
+	criteria.WithoutFlags = []string{imap.SeenFlag}
+	uids, err := s.conn.Search(criteria)
+	if err != nil {
+		return 0
+	}
+
+	return (len(uids))
+}
+
 // Messages returns the most recent messages in the given folder.
 //
 func (s *IMAPConnection) Messages(folder string, offset int) ([]Message, int, int, error) {
@@ -395,7 +419,7 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	tmp := SingleMessage{}
 
 	// Select the folder
-	_, err = s.conn.Select(folder, false)
+	mbox, err := s.conn.Select(folder, false)
 	if err != nil {
 		return tmp, err
 	}
@@ -550,6 +574,12 @@ func (s *IMAPConnection) GetMessage(uid string, folder string) (SingleMessage, e
 	//
 	tmp.Folder = folder
 	tmp.UID = uid
+
+	//
+	// Get total/unread counts
+	//
+	tmp.Total = int(mbox.Messages)
+	tmp.Unread = s.Unread(folder)
 
 	return tmp, nil
 }
