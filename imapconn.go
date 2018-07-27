@@ -46,7 +46,7 @@ type IMAPConnection struct {
 }
 
 // Message is a very minimal structure for a message in a folder.
-// It is used in `GetMessages` and nowhere else.
+// It is used in `Messages()` and nowhere else.
 type Message struct {
 	New         bool
 	ID          string
@@ -308,7 +308,11 @@ func (s *IMAPConnection) Messages(folder string, offset int) ([]Message, int, in
 	// arrived before 'now'".
 	//
 	criteria := imap.NewSearchCriteria()
-	criteria.Before = time.Now()
+
+	max := time.Date(
+		2099, 1, 1, 00, 00, 00, 00, time.UTC)
+
+	criteria.Before = max
 	var uids []uint32
 	uids, err = s.conn.Search(criteria)
 	if err != nil {
