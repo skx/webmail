@@ -133,7 +133,7 @@
           </ul>
         </nav>
         <div class="tab-content">
-          <div role="tabpanel" class="tab-pane face in {{ if .Message.HasHTML }}active{{ end }}" id="body-html">{{ .Message.HTML }}</div>
+          <div role="tabpanel" class="tab-pane face in {{ if .Message.HasHTML }}active{{ end }}" id="body-html"><span id="html-message">{{ html .Message.HTML }}</span></div>
           <div role="tabpanel" class="tab-pane fade in {{ if .Message.HasHTML }} {{ else }} active{{ end }}" id="body-text"><pre>{{ html .Message.Text}}</pre></div>
           <div role="tabpanel" class="tab-pane fade in" id="body-raw"><pre>{{ html .Message.RAW }}</pre></div>
         </div>
@@ -238,6 +238,8 @@
        input.value = existing
        filterMailbox();
      }
+
+     $("#html-message").html( $("#html-message").text() )
     </script>
   </body>
 </html>
