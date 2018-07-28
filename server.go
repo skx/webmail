@@ -151,40 +151,57 @@ func AddContext(next http.Handler) http.Handler {
 }
 
 //
-// Serve a static-resource
+// loginForm shows the login-form to the user, via the template `login.html`.
 //
-func serveResource(response http.ResponseWriter, request *http.Request, resource string, mime string) {
-	tmpl, err := getResource(resource)
+func loginForm(response http.ResponseWriter, request *http.Request) {
+
+	tmpl, err := getResource("data/login.html")
 	if err != nil {
 		fmt.Fprintf(response, err.Error())
 		return
 	}
-	response.Header().Set("Content-Type", mime)
-	fmt.Fprintf(response, string(tmpl))
-}
 
-//
-// loginForm shows the login-form to the user,
-//
-func loginForm(response http.ResponseWriter, request *http.Request) {
-	serveResource(response, request, "data/login.html", "text/html; charset=utf-8")
+	//
+	//  Load our template, from the resource.
+	//
+	src := string(tmpl)
+	t := template.Must(template.New("tmpl").Parse(src))
+
+	//
+	// Execute the template into our buffer.
+	//
+	buf := &bytes.Buffer{}
+	err = t.Execute(buf, nil)
+
+	//
+	// If there were errors, then show them.
+	//
+	if err != nil {
+		fmt.Fprintf(response, err.Error())
+		return
+	}
+
+	//
+	// Otherwise write the result.
+	//
+	buf.WriteTo(response)
 }
 
 //
 // validate tests a login is correct.
 //
-func validate(host string, username string, password string) bool {
+func validate(host string, username string, password string) (bool, error) {
 
 	x := NewIMAP(host, username, password)
 	res, err := x.Connect()
 	if !res {
-		return false
+		return false, err
 	}
 	if err != nil {
-		return false
+		return false, err
 	}
 	x.Close()
-	return true
+	return true, nil
 }
 
 //
@@ -201,7 +218,9 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	// If this succeeded then let the login succeed.
 	//
-	if validate(host, user, pass) {
+	result, error := validate(host, user, pass)
+
+	if result && error == nil {
 
 		//
 		// Store everything in the cookie
@@ -225,9 +244,56 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 	}
 
 	//
-	// Failure to login, redirect to try again.
+	// The data we'll put in our template.
 	//
-	http.Redirect(response, request, "/login#failed", 302)
+	type PageData struct {
+		Error string
+	}
+
+	//
+	// Create an instance of the object so we can populate
+	// our template.
+	//
+	var x PageData
+	x.Error = error.Error()
+
+	//
+	// If we reached this point there was an error with the
+	// login-process.
+	//
+	// Load the `login.html` template, and populate it with the
+	// error-message
+	//
+	tmpl, err := getResource("data/login.html")
+	if err != nil {
+		fmt.Fprintf(response, err.Error())
+		return
+	}
+
+	//
+	//  Load our template, from the resource.
+	//
+	src := string(tmpl)
+	t := template.Must(template.New("tmpl").Parse(src))
+
+	//
+	// Execute the template into our buffer.
+	//
+	buf := &bytes.Buffer{}
+	err = t.Execute(buf, x)
+
+	//
+	// If there were errors, then show them.
+	//
+	if err != nil {
+		fmt.Fprintf(response, err.Error())
+		return
+	}
+
+	//
+	// Otherwise write the result.
+	//
+	buf.WriteTo(response)
 }
 
 // indexPageHandler responds to the server-root requests.  If the user
