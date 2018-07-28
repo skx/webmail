@@ -74,7 +74,16 @@
       </div>
       <div class="col-sm-9 col-md-9">
         {{if .Error}}
-        <p>{{.Error}}</p>
+        <div style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+          <div class="panel panel-info" >
+            <div class="panel-heading">
+              <div class="panel-title">Error</div>
+            </div>
+            <div style="padding-top:30px" class="panel-body" >
+                <p>{{.Error}}</p>
+            </div>
+          </div>
+        </div>
         {{else}}
         <nav aria-label="Page navigation">
           <ul class="pagination">
@@ -97,7 +106,6 @@
           <tr data-href="/message/{{.ID}}/{{$.Folder}}" {{ if .New }}style="font-weight: bold;" {{end}}><td>{{ if .Attachments }}<span class="glyphicon glyphicon-paperclip" aria-hidden="true"></span>{{end}}{{ if .Replied }}<span class="glyphicon glyphicon-share" aria-hidden="true"></span>{{end}}</td><td>{{ .Date }}</td><td>{{ .From }}</td><td>{{ .Subject }}</td></tr>
           {{end}}
         </table>
-        {{end}}
         <nav aria-label="Page navigation">
           <ul class="pagination">
             <li>
@@ -112,6 +120,7 @@
             </li>
           </ul>
         </nav>
+        {{end}}
       </div>
     </div>
 
