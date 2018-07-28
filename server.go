@@ -7,7 +7,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -26,11 +25,6 @@ var (
 	// The secure-cookie object we use.
 	//
 	cookieHandler *securecookie.SecureCookie
-
-	//
-	// UNREAD specifies whether we show unread-folders in bold.
-	//
-	UNREAD *bool
 )
 
 // key is the type for a context-key
@@ -284,7 +278,7 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	res, err := imap.Connect()
 	if (res == true) && (err == nil) {
-		x.Folders, err = imap.Folders(*UNREAD)
+		x.Folders, err = imap.Folders()
 		imap.Close()
 		if err != nil {
 			x.Error = err.Error()
@@ -401,7 +395,7 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	res, err := imap.Connect()
 	if (res == true) && (err == nil) {
-		x.Folders, err = imap.Folders(*UNREAD)
+		x.Folders, err = imap.Folders()
 		if err != nil {
 			x.Error = err.Error()
 		}
@@ -529,7 +523,7 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	res, err := imap.Connect()
 	if (res == true) && (err == nil) {
-		x.Folders, err = imap.Folders(*UNREAD)
+		x.Folders, err = imap.Folders()
 		if err != nil {
 			x.Error = err.Error()
 		}
@@ -670,13 +664,8 @@ func logoutHandler(response http.ResponseWriter, request *http.Request) {
 	http.Redirect(response, request, "/", 302)
 }
 
+// main is our entry-point
 func main() {
-
-	//
-	// Flag handling
-	//
-	UNREAD = flag.Bool("unread", false, "Should we show unread folders?")
-	flag.Parse()
 
 	//
 	// Configure our secure cookies

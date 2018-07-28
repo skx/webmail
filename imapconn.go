@@ -34,6 +34,7 @@ type IMAPFolder struct {
 	Name string
 
 	// Does this folder contain unread messages?
+	// NOTE: This is never set.
 	Unread bool
 }
 
@@ -201,7 +202,7 @@ func (s *IMAPConnection) Close() {
 // when you have a lot of folders:
 //  https://play.golang.org/p/jdCRMheabcA
 //
-func (s *IMAPConnection) Folders(unread bool) ([]IMAPFolder, error) {
+func (s *IMAPConnection) Folders() ([]IMAPFolder, error) {
 
 	var res []string
 
@@ -234,35 +235,22 @@ func (s *IMAPConnection) Folders(unread bool) ([]IMAPFolder, error) {
 	var tmp []IMAPFolder
 
 	//
-	// If we're not showing unread indicators for folders we're simple.
+	// Return an array of IMAPFolder objects, rather than just
+	// the folder-names.
+	//
+	// There is overhead here, but we can live with it.
 	//
 	for _, name := range res {
-
-		new := false
-
-		//
-		// But if we do we have to select the folder
-		// and see if there are unread messages.
-		//
-		if unread {
-
-			//
-			// Select.
-			//
-			folder, err := s.conn.Select(name, false)
-			if err == nil {
-				// Look to see if there are unread messages.
-				new = folder.UnseenSeqNum > 0
-			}
-		}
-		x := IMAPFolder{Name: name, Unread: new}
+		x := IMAPFolder{Name: name, Unread: false}
 		tmp = append(tmp, x)
 	}
 
 	return tmp, nil
 }
 
+// Unread returns the count of unread messages in the given folder.
 func (s *IMAPConnection) Unread(folder string) int {
+
 	// Select the given folder
 	_, err := s.conn.Select(folder, false)
 	if err != nil {
@@ -281,7 +269,6 @@ func (s *IMAPConnection) Unread(folder string) int {
 }
 
 // Messages returns the most recent messages in the given folder.
-//
 func (s *IMAPConnection) Messages(folder string, offset int) ([]Message, int, int, error) {
 
 	var err error
