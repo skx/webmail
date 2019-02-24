@@ -1,4 +1,3 @@
-[![Travis CI](https://img.shields.io/travis/skx/webmail/master.svg?style=flat-square)](https://travis-ci.org/skx/webmail)
 [![Go Report Card](https://goreportcard.com/badge/github.com/skx/webmail)](https://goreportcard.com/report/github.com/skx/webmail)
 [![license](https://img.shields.io/github/license/skx/webmail.svg)](https://github.com/skx/webmail/blob/master/LICENSE)
 [![Release](https://img.shields.io/github/release/skx/webmail.svg)](https://github.com/skx/webmail/releases/latest)
