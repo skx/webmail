@@ -6,6 +6,11 @@ BASE="webmail"
 # Get the dependencies
 go mod init
 
+# Ensure that we have `implant` for the moment, to generate
+# static resources.
+go get -u github.com/skx/implant
+go generate
+
 #
 # We build on multiple platforms/archs
 #
