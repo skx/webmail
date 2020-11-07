@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -43,6 +44,38 @@ const (
 	// keyPass stores the password
 	keyPass key = iota
 )
+
+var (
+	tmpls *template.Template
+)
+
+func loadTemplates() {
+	tmpls = template.New("tmpls")
+	toParse := []string {
+		"data/login.html",
+		"data/folders.html",
+		"data/script.js",
+		"data/message.html",
+		"data/messages.html",
+	}
+	for _, file := range toParse {
+		log.Printf("Parsing template %v", file)
+		f, err := getResource(file)
+		if err != nil {
+			// Failing to load a template is a coding error
+			// and can't be handled.
+			log.Fatal(err)
+		}
+		// Successive calls to Parse allow adding more templates to the 
+		// same object, if they are wrapped in a {{ define }} block.
+		tmpls, err = tmpls.Parse(string(f))
+		if err != nil {
+			// Failing to parse a template is a coding error
+			// and can't be handled.
+			log.Fatal(err)
+		}
+	}
+}
 
 // LoadCookie loads the persistent cookies from disc, if they exist.
 func LoadCookie() {
@@ -154,24 +187,16 @@ func AddContext(next http.Handler) http.Handler {
 // loginForm shows the login-form to the user, via the template `login.html`.
 //
 func loginForm(response http.ResponseWriter, request *http.Request) {
-
-	tmpl, err := getResource("data/login.html")
-	if err != nil {
-		fmt.Fprintf(response, err.Error())
-		return
-	}
-
 	//
-	//  Load our template, from the resource.
+	// Lookup the HTML template
 	//
-	src := string(tmpl)
-	t := template.Must(template.New("tmpl").Parse(src))
+	t := tmpls.Lookup("login.html")
 
 	//
 	// Execute the template into our buffer.
 	//
 	buf := &bytes.Buffer{}
-	err = t.Execute(buf, nil)
+	err := t.Execute(buf, nil)
 
 	//
 	// If there were errors, then show them.
@@ -264,23 +289,13 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 	// Load the `login.html` template, and populate it with the
 	// error-message
 	//
-	tmpl, err := getResource("data/login.html")
-	if err != nil {
-		fmt.Fprintf(response, err.Error())
-		return
-	}
-
-	//
-	//  Load our template, from the resource.
-	//
-	src := string(tmpl)
-	t := template.Must(template.New("tmpl").Parse(src))
+	t := tmpls.Lookup("login.html")
 
 	//
 	// Execute the template into our buffer.
 	//
 	buf := &bytes.Buffer{}
-	err = t.Execute(buf, x)
+	err := t.Execute(buf, x)
 
 	//
 	// If there were errors, then show them.
@@ -358,19 +373,9 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 	}
 
 	//
-	// Load our template source.
+	//  Lookup the template
 	//
-	tmpl, err := getResource("data/folders.html")
-	if err != nil {
-		fmt.Fprintf(response, err.Error())
-		return
-	}
-
-	//
-	//  Load our template, from the resource.
-	//
-	src := string(tmpl)
-	t := template.Must(template.New("tmpl").Parse(src))
+	t := tmpls.Lookup("folders.html")
 
 	//
 	// Execute the template into our buffer.
@@ -507,19 +512,9 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 	}
 
 	//
-	// Load our template source.
+	// Lookup the messages view
 	//
-	tmpl, err := getResource("data/messages.html")
-	if err != nil {
-		fmt.Fprintf(response, err.Error())
-		return
-	}
-
-	//
-	//  Load our template, from the resource.
-	//
-	src := string(tmpl)
-	t := template.Must(template.New("tmpl").Parse(src))
+	t := tmpls.Lookup("messages.html")
 
 	//
 	// Execute the template into our buffer.
@@ -612,19 +607,9 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 	x.Folder = folder
 
 	//
-	// Load our template source.
+	// Lookup the the message view template
 	//
-	tmpl, err := getResource("data/message.html")
-	if err != nil {
-		fmt.Fprintf(response, err.Error())
-		return
-	}
-
-	//
-	//  Load our template, from the resource.
-	//
-	src := string(tmpl)
-	t := template.Must(template.New("tmpl").Parse(src))
+	t := tmpls.Lookup("message.html")
 
 	//
 	// Execute the template into our buffer.
@@ -732,6 +717,10 @@ func logoutHandler(response http.ResponseWriter, request *http.Request) {
 
 // main is our entry-point
 func main() {
+	//
+	// Load our HTML templates
+	// 
+	loadTemplates()
 
 	//
 	// Configure our secure cookies

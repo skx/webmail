@@ -2,3 +2,4 @@ webmail
 webmail-*
 .cookie.blk
 .cookie.hsh
+static.go

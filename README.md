@@ -105,8 +105,8 @@ If you don't already have `implant` installed fetch it like so:
 Now regenerate the compiled version(s) of the templates and rebuild the
 binary to make your changes:
 
-    implant -input data/ -output static.go
-    go build .
+    go generate
+    go build
 
 
 ## Thanks
