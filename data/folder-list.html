@@ -1,0 +1,21 @@
+{{ define "folder-list.html" }}
+      <div class="col-sm-3 col-md-3">
+        <!-- Current Folder -->
+        <div class="list-group">
+          <a class="list-group-item btn btn-default folder" style="text-align:left" href="/folder/{{.Folder}}" role="button">{{.Folder}} <span class="badge">[{{.Unread}}/{{.Total}}]</span></a>
+        </div>
+
+        <!-- Filter -->
+        <div class="input-group">
+          <span class="input-group-addon"><i class="glyphicon glyphicon-search"></i></span>
+          <input type="text" id="filter" name="filter" value="" placeholder="filter" style="width:100%">
+        </div>
+
+        <!-- All Folders -->
+        <div class="list-group" id="folders">
+          {{range .Folders }}
+          <a class="list-group-item btn btn-default folder" style="text-align:left" href="/folder/{{.Name}}" role="button">{{if .Unread}}<b>{{end}}{{.Name}}{{if .Unread}}</b>{{end}}</a>
+          {{end}}
+        </div>
+      </div>
+{{ end }}

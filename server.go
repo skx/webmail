@@ -65,6 +65,7 @@ func loadTemplates() {
 		"data/frame-post-content.html",
 		"data/login.html",
 		"data/folders.html",
+		"data/folder-list.html",
 		"data/message.html",
 		"data/messages.html",
 	}
