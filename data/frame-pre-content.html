@@ -27,6 +27,10 @@
       font-weight: bold;
       }
     </style>
+    <!-- Focus the first input on the page always -->
+    <script type="text/javascript">
+     $( document ).ready(function() { $('input:text:visible:first').focus(); })
+    </script>
   </head>
   <body>
       <nav class="navbar navbar-default">
@@ -43,6 +47,9 @@
           <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
               <li><a href="/">Home</a></li>
+	      {{ if .IsLoggedIn }}
+	      <li><a href="/logout">Logout</a></li>
+	      {{ end }}
 	      <!-- TODO other navigation routes -->
 	      <!-- TODO highlight the current route -->
 	      <!-- TODO use gorilla/reverse to lookup the backwards routes, make is easier to manage them? -->

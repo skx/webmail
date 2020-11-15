@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"html"
 	"os"
 	"strconv"
 	"text/template"
@@ -54,6 +55,7 @@ var (
 //
 type FrameData struct {
 	Title string
+	IsLoggedIn bool
 }
 
 func loadTemplates() {
@@ -63,7 +65,6 @@ func loadTemplates() {
 		"data/frame-post-content.html",
 		"data/login.html",
 		"data/folders.html",
-		"data/script.js",
 		"data/message.html",
 		"data/messages.html",
 	}
@@ -213,7 +214,7 @@ func loginForm(response http.ResponseWriter, request *http.Request) {
 	// Execute the template into our buffer.
 	//
 	buf := &bytes.Buffer{}
-	err := t.Execute(buf, &LoginData{&FrameData{Title: "Login"},""})
+	err := t.Execute(buf, &LoginData{&FrameData{"Login", false},""})
 
 	//
 	// If there were errors, then show them.
@@ -286,18 +287,13 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 	}
 
 	//
-	// The data we'll put in our template.
-	//
-	type PageData struct {
-		Error string
-	}
-
-	//
 	// Create an instance of the object so we can populate
 	// our template.
 	//
-	var x PageData
-	x.Error = error.Error()
+	x := &LoginData{
+		&FrameData{"Login", false},
+		error.Error(),
+	}
 
 	//
 	// If we reached this point there was an error with the
@@ -356,6 +352,7 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 	// This is the page-data we'll return
 	//
 	type PageData struct {
+		*FrameData
 		Error   string
 		Folders []IMAPFolder
 	}
@@ -364,7 +361,11 @@ func folderListHandler(response http.ResponseWriter, request *http.Request) {
 	// Create an instance of the object so we can populate
 	// our template.
 	//
-	var x PageData
+	x := &PageData{
+		&FrameData{"Folders", true},
+		"",
+		make([]IMAPFolder,0),
+	}
 
 	//
 	// Create an IMAP object.
@@ -445,6 +446,7 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 	// This is the page-data we'll return
 	//
 	type PageData struct {
+		*FrameData
 		Error    string
 		Messages []Message
 		Folder   string
@@ -467,6 +469,8 @@ func messageListHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	var x PageData
 	var err error
+
+	x.FrameData = &FrameData{html.EscapeString(folder), true}
 
 	//
 	// Fill it up
@@ -574,6 +578,7 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 	// This is the page-data we'll return
 	//
 	type PageData struct {
+		*FrameData
 		Error   string
 		Message SingleMessage
 		Folder  string
@@ -590,7 +595,6 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 	//
 	var x PageData
 	var err error
-
 	//
 	// Create an IMAP object.
 	//
@@ -622,6 +626,9 @@ func messageHandler(response http.ResponseWriter, request *http.Request) {
 	}
 
 	x.Folder = folder
+
+	// Render the title into a string and generate the frame data
+	x.FrameData = &FrameData{html.EscapeString("Message " + folder + " [" + uid + "]"), true}
 
 	//
 	// Lookup the the message view template
