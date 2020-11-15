@@ -49,9 +49,18 @@ var (
 	tmpls *template.Template
 )
 
+//
+// Data used by the frame templates, common to every page
+//
+type FrameData struct {
+	Title string
+}
+
 func loadTemplates() {
 	tmpls = template.New("tmpls")
 	toParse := []string {
+		"data/frame-pre-content.html",
+		"data/frame-post-content.html",
 		"data/login.html",
 		"data/folders.html",
 		"data/script.js",
@@ -183,6 +192,14 @@ func AddContext(next http.Handler) http.Handler {
 	})
 }
 
+// 
+// Data required for rendering the login page
+//
+type LoginData struct {
+	*FrameData
+	Error string
+}
+
 //
 // loginForm shows the login-form to the user, via the template `login.html`.
 //
@@ -196,7 +213,7 @@ func loginForm(response http.ResponseWriter, request *http.Request) {
 	// Execute the template into our buffer.
 	//
 	buf := &bytes.Buffer{}
-	err := t.Execute(buf, nil)
+	err := t.Execute(buf, &LoginData{&FrameData{Title: "Login"},""})
 
 	//
 	// If there were errors, then show them.
