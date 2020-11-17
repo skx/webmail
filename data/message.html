@@ -1,78 +1,7 @@
 {{ define "message.html" }}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>Message {{.Message.Folder }} [{{ .Message.UID }}]</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <!-- jQuery is required by bootstrap -->
-    <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
-    <!-- Latest compiled and minified JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-
-    <style type="text/css">
-     html {
-       background-color:#f9f9f9;
-     }
-     .steve-footer {
-       padding: 40px 0;
-       color: #999;
-       background-color: #f9f9f9;
-       border-top: 2px solid #e9e9e9;
-     }
-     .steve-footer .nav-header {
-       color: black;
-       font-weight: bold;
-     }
-    </style>
-    <script type="text/javascript">
-     $( document ).ready(function() { $('input:text:visible:first').focus(); })
-    </script>
-  </head>
-  <body>
-    <nav class="navbar navbar-default">
-      <div class="container-fluid">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="/">Webmail</a>
-        </div>
-        <div id="navbar" class="navbar-collapse collapse">
-          <ul class="nav navbar-nav">
-            <li><a href="/">Home</a></li>
-          </ul>
-          <ul class="nav navbar-nav navbar-right">
-            <li ><a href="/logout">Logout</a></li>
-          </ul>
-        </div>
-      </div>
-    </nav>
+{{ template "frame-pre-content.html" . }}
     <div class="row">
-      <div class="col-sm-3 col-md-3">
-        <!-- Current Folder -->
-        <div class="list-group">
-          <a class="list-group-item btn btn-default folder" style="text-align:left" href="/folder/{{.Folder}}" role="button">{{.Folder}} <span class="badge">[{{.Unread}}/{{.Total}}]</span></a>
-        </div>
-
-        <!-- Filter -->
-        <div class="input-group">
-          <span class="input-group-addon"><i class="glyphicon glyphicon-search"></i></span>
-          <input type="text" id="filter" name="filter" value="" placeholder="filter" style="width:100%">
-        </div>
-
-        <!-- All Folders -->
-        <div class="list-group" id="folders">
-          {{range .Folders }}
-          <a class="list-group-item btn btn-default folder" style="text-align:left" href="/folder/{{.Name}}" role="button">{{if .Unread}}<b>{{end}}{{.Name}}{{if .Unread}}</b>{{end}}</a>
-          {{end}}
-        </div>
-      </div>
+      {{ template "folder-list.html" . }}
       <div class="col-sm-9 col-md-9">
         {{if .Error}}
         <div style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
@@ -142,23 +71,6 @@
       </div>
     </div>
 
-    <p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>
-    <footer id="footer" class="footer steve-footer" role="navigation">
-      <div class="container">
-        <div class="col-md-6">
-          <ul class="nav">
-            <li class="nav-header">Source Code</li>
-            <li><a href="https://github.com/skx/webmail">Available on github</a></li>
-          </ul>
-        </div>
-        <div class="col-md-6">
-          <ul class="nav ">
-            <li class="nav-header">Copyright</li>
-            <li><a href="https://steve.kemp.fi/">Steve Kemp</a></li>
-          </ul>
-        </div>
-      </div>
-    </footer>
     <script type="text/javascript">
      $(function(){
        $('.table tr[data-href]').each(function(){
@@ -190,10 +102,7 @@
      });
     </script>
     <script type="text/javascript">
-     {{ template "script.js" }}
-
      $("#html-message").html( $("#html-message").text() )
     </script>
-  </body>
-</html>
+{{ template "frame-post-content.html" . }}
 {{ end }}
